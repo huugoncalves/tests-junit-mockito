@@ -6,6 +6,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+import br.com.huugoncalves.daos.LocacaoDAO;
 import br.com.huugoncalves.entidades.Filme;
 import br.com.huugoncalves.entidades.Locacao;
 import br.com.huugoncalves.entidades.Usuario;
@@ -14,6 +15,10 @@ import br.com.huugoncalves.exceptions.LocadoraException;
 import br.com.huugoncalves.utils.DataUtils;
 
 public class LocacaoService {
+
+	private LocacaoDAO dao;
+	private SPCService spcService;
+	private EmailService emailService;
 
 	public Locacao alugarFilme(Usuario usuario, List<Filme> filmes) throws LocadoraException, FilmeSemEstoqueException {
 		if (usuario == null) {
@@ -48,6 +53,18 @@ public class LocacaoService {
 
 			precoLocacao += valorFilme;
 		}
+
+		boolean negativado;
+		try {
+			negativado = spcService.possuiNegativacao(usuario);
+		} catch (Exception e) {
+			throw new LocadoraException("Problemas com o SPC, tente novamente!");
+		}
+
+		if (negativado) {
+			throw new LocadoraException("Usuario negativado!");
+		}
+
 		locacao.setFilmes(filmes);
 		locacao.setValor(precoLocacao);
 
@@ -60,9 +77,24 @@ public class LocacaoService {
 		locacao.setDataRetorno(dataEntrega);
 
 		// Salvando a locacao...
-		// TODO adicionar método para salvar
+		dao.salvar(locacao);
 
 		return locacao;
+	}
+
+	public void notificarAtrasos() {
+		List<Locacao> locacoes = dao.obterLocacoesPendentes();
+		for (Locacao locacao : locacoes) {
+			if (locacao.getDataRetorno().before(new Date())) {
+				emailService.notificarAtraso(locacao.getUsuario());
+			}
+		}
+	}
+
+	public void prorrogarLocacao(Locacao locacao, Integer dias) {
+		Locacao novaLocacao = new Locacao(locacao.getUsuario(), locacao.getFilmes(), new Date(),
+				DataUtils.obterDataComDiferencaDias(dias), locacao.getValor() * dias);
+		dao.salvar(novaLocacao);
 	}
 
 }

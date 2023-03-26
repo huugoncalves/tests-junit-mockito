@@ -13,8 +13,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import br.com.huugoncalves.builders.UsuarioBuilder;
+import br.com.huugoncalves.daos.LocacaoDAO;
 import br.com.huugoncalves.entidades.Filme;
 import br.com.huugoncalves.entidades.Locacao;
 import br.com.huugoncalves.entidades.Usuario;
@@ -24,8 +28,13 @@ import br.com.huugoncalves.exceptions.LocadoraException;
 @RunWith(Parameterized.class)
 public class CalculoValorLocacaoTest {
 
+	@InjectMocks
 	private LocacaoService service;
-	private Usuario usuario;
+
+	@Mock
+	private SPCService spc;
+	@Mock
+	private LocacaoDAO dao;
 
 	@Parameter
 	public List<Filme> filmes;
@@ -44,8 +53,7 @@ public class CalculoValorLocacaoTest {
 
 	@Before
 	public void setup() {
-		service = new LocacaoService();
-		usuario = UsuarioBuilder.umUsuario().agora();
+		MockitoAnnotations.initMocks(this);
 	}
 
 	@Parameters(name = "{2}")
@@ -61,7 +69,7 @@ public class CalculoValorLocacaoTest {
 
 	@Test
 	public void deveCalcularValorLocacaoConsiderandoDescontos() throws LocadoraException, FilmeSemEstoqueException {
-		this.setup();
+		Usuario usuario = UsuarioBuilder.umUsuario().agora();
 
 		Locacao resultado = service.alugarFilme(usuario, filmes);
 
